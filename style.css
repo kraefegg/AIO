@@ -195,6 +195,9 @@ body{
 
 /* BUTTONS */
 .btn-hud{ font-family:var(--font-mono); font-size:11px; letter-spacing:1px; background:rgba(63,224,255,.08); color:var(--cyan); border:1px solid var(--line-strong); border-radius:7px; padding:7px 14px; cursor:pointer; transition:.15s; }
+input.btn-hud, select.btn-hud{ background:var(--panel-2); color:var(--ink-1); cursor:auto; }
+input.btn-hud::placeholder{ color:var(--ink-2); }
+input.btn-hud:focus, select.btn-hud:focus{ outline:none; border-color:var(--cyan); box-shadow:var(--glow); }
 .btn-hud:hover{ background:rgba(63,224,255,.18); box-shadow:var(--glow); }
 .btn-hud.ghost{ background:transparent; color:var(--ink-1); border-color:var(--line); }
 .btn-hud.sm{ padding:5px 10px; font-size:10px; }
@@ -232,6 +235,40 @@ body{
 .dropzone{ border:1.5px dashed var(--line-strong); border-radius:10px; padding:30px; text-align:center; cursor:pointer; transition:.15s; background:rgba(63,224,255,.02); }
 .dropzone:hover, .dropzone.drag{ background:rgba(63,224,255,.06); border-color:var(--cyan); }
 .dropzone i{ font-size:26px; color:var(--cyan); margin-bottom:8px; }
+
+/* LIVE TAG */
+.live-tag{ color:var(--teal) !important; border-color:rgba(18,224,176,.4) !important; }
+.live-tag::before{ content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--teal); box-shadow:0 0 8px var(--teal); margin-right:6px; animation:pulse 1.6s ease-in-out infinite; }
+
+/* VISOR (hydrological charge card) */
+.visor-card{ background:linear-gradient(160deg, rgba(12,28,44,.92), rgba(10,30,44,.72)); }
+.visor-card .card-head{ border-bottom:1px dashed var(--line); padding-bottom:10px; }
+.visor-main{ display:flex; flex-direction:column; justify-content:center; }
+.visor-label{ font-family:var(--font-mono); font-size:11px; letter-spacing:2px; color:var(--ink-2); text-transform:uppercase; display:flex; align-items:center; gap:7px; margin-bottom:6px; }
+.visor-label i{ color:var(--cyan); }
+.visor-value{ font-family:var(--font-display); font-size:44px; font-weight:800; line-height:1.05; color:var(--cyan); text-shadow:0 0 28px rgba(63,224,255,.35); }
+.visor-value small{ font-family:var(--font-mono); font-size:14px; font-weight:400; color:var(--ink-2); letter-spacing:1px; }
+.visor-extra{ font-family:var(--font-mono); font-size:12px; color:var(--ink-1); margin-top:6px; }
+.visor-facts{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.visor-facts span{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-1); background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:6px; padding:4px 9px; }
+.visor-facts b{ color:var(--ink-0); }
+.visor-foot{ margin-top:12px; padding-top:10px; border-top:1px dashed var(--line); font-family:var(--font-mono); font-size:10.5px; color:var(--ink-2); line-height:1.5; }
+
+/* KPI note */
+.kpi-note{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-2); margin-top:10px; line-height:1.45; border-left:2px solid var(--line-strong); padding-left:8px; }
+
+/* source footnote */
+.source-foot{ font-family:var(--font-mono); font-size:10px; color:var(--ink-2); margin-top:10px; line-height:1.5; border-top:1px dashed var(--line); padding-top:8px; }
+
+/* MAP TOOLS */
+.map-tools{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; flex-wrap:wrap; }
+.map-status{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-2); max-width:60%; text-align:right; }
+.map-status.ok{ color:var(--teal); }
+.map-status.warn{ color:var(--amber); }
+
+/* DANGER BUTTON */
+.btn-hud.danger{ background:rgba(255,77,94,.08); color:var(--red); border-color:rgba(255,77,94,.35); }
+.btn-hud.danger:hover{ background:rgba(255,77,94,.18); box-shadow:0 0 18px rgba(255,77,94,.22); }
 
 /* MAP */
 #leafletMap{ width:100%; height:520px; border-radius:10px; border:1px solid var(--line); filter:saturate(1.05); }
