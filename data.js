@@ -3,11 +3,16 @@ const AIO = {
   project:{
     name:"PRAD Rio do Peixe I e II",
     municipio:"Caraúbas", uf:"PB", pais:"Brasil",
-    area_km2:5.47, lat:-7.7283, lon:-36.4935,
+    area_km2:5.73, lat:-7.7283, lon:-36.4935,
     inicio:"2024-11", campanha_atual:"Julho/2026",
-    bioma:"Caatinga"
+    bioma:"Caatinga (Cariri)",
+    altitude_m:455,                     // altitude média do sítio (m) — Serra/Cariri
+    raio_delimitado_km:3,               // raio de análise em torno da sede (km)
+    cordenada_label:"07°43'42\"S 36°29'37\"W"
   },
-  // NDVI / spectral index synthetic monitoring series (campaign-based, consistent with monthly PRAD cadence)
+  // Série de índices espectrais por campanha.
+  // NDVI é substituído em runtime por dados reais do export Sentinel-2 (github.com/kraefegg/AIO);
+  // os demais são séries-modelo até existirem exports numéricos no repositório.
   campaigns:["Mar/26","Abr/26","Mai/26","Jun/26","Jul/26"],
   indices:{
     ndvi:   [0.31,0.34,0.36,0.39,0.42],
@@ -16,40 +21,67 @@ const AIO = {
     barren: [0.61,0.57,0.54,0.49,0.45],
   },
   kpi:{
-    mudas_vivas_pct:78.4,
-    area_recuperada_pct:52.0,
-    cobertura_vegetal_pct:46.5,
+    cobertura_vegetal_pct:46.5,        // atualizado pelo NDVI real quando disponível
     taxa_mortalidade_pct:11.2,
+    area_recuperada_pct:52.0,
   },
   alerts:[
     {level:"warn", title:"Estiagem prolongada — Setor B", detail:"14 dias sem precipitação registrada > 1mm", time:"há 6h"},
     {level:"crit", title:"Herbivoria detectada — Talhão 3", detail:"Rebrota comprometida em 8% das mudas monitoradas", time:"há 1d"},
     {level:"info", title:"Campanha Jul/2026 concluída", detail:"Relatório mensal disponível para exportação", time:"há 2d"},
   ],
-  // Sample field CSV (auto-loaded into the CSV module as demonstration dataset)
-  sampleCSV:`data,ponto,especie,altura_cm,diametro_colo_mm,status,setor
-2026-07-02,P01,Mimosa tenuiflora,86,14.2,vivo,A
-2026-07-02,P02,Anadenanthera colubrina,64,10.8,vivo,A
-2026-07-02,P03,Aspidosperma pyrifolium,41,7.5,estressado,A
-2026-07-02,P04,Mimosa tenuiflora,92,15.1,vivo,B
-2026-07-02,P05,Cenostigma pyramidale,38,6.9,morto,B
-2026-07-02,P06,Anadenanthera colubrina,77,12.4,vivo,B
-2026-07-02,P07,Aspidosperma pyrifolium,55,9.0,vivo,C
-2026-07-02,P08,Mimosa tenuiflora,102,16.7,vivo,C
-2026-07-02,P09,Cenostigma pyramidale,29,5.1,morto,C
-2026-07-02,P10,Anadenanthera colubrina,68,11.0,estressado,A
-2026-07-02,P11,Mimosa tenuiflora,95,15.8,vivo,B
-2026-07-02,P12,Aspidosperma pyrifolium,47,8.2,vivo,C`,
-  // Remote sensing panels — GIFs and NDVI series are REAL exports from github.com/kraefegg/AIO (Sentinel Hub / EO Browser).
-  // Only NDVI has a quantitative CSV time series in the repo; the other 5 layers are timelapse GIFs without
-  // accompanying stat exports, so their numeric fields are left null (UI shows "sem export CSV" instead of invented numbers).
-  // Panel order assumed = order requested in the original brief (NDVI, Moisture, Moisture Stress, Barren Soil, Agriculture, NDWI);
-  // filenames are opaque Sentinel Hub export IDs, so correct this mapping in Configurações if it does not match.
+
+  // ---------- QUEIMADAS · INPE BDQUEIMADAS (fonte real, tempo quase-real) ----------
+  fire:{
+    radius_km:60,                       // raio de busca de focos em torno de Caraúbas-PB
+    // Arquivos diários públicos do INPE (dataserver-coids) — CORS habilitado.
+    dailyBase:"https://dataserver-coids.inpe.br/queimadas/queimadas/focos/csv/diario/Brasil/focos_diario_br_",
+    lookbackDays:2                      // quantos dias retroage (ontem + hoje)
+  },
+
+  // ---------- HIDROLOGIA · RIO PARAÍBA NO TRECHO DE CARAÚBAS (Congo → Caraúbas) ----------
+  // Modelo de carga hidrológica Q = A × V, com geometria real do canal (levantamento
+  // do trecho Congo → Caraúbas, 44,49 km) e velocidade média estimada a partir da
+  // PLUVIOSIDADE REAL da região (Open-Meteo). Cenários de velocidade da literatura
+  // do semiárido: 0,10 → 1,20 m/s conforme a chuva acumulada dos últimos 3 dias.
+  hydro:{
+    rio:"Rio Paraíba — trecho de Caraúbas-PB",
+    trecho:"Congo → Caraúbas",
+    trecho_km:44.49,                    // extensão do trecho monitorado (km)
+    afluentes:["Rio Taperoá","Rio do Peixe","Riacho São Gonçalo","Riacho do Pombal"],
+    bacia_km2:2600,                     // área de drenagem estimada a montante de Caraúbas (km²)
+    geom:{                              // geometria média do canal (seção transversal)
+      largura_m:3.8,                    // 2–5 m (60%) · 1–2 m (15%) · ≈6 m (25%) → média ponderada
+      profundidade_m:1.9,               // 0,20 m (14%) · 1–2 m (69%) · até 5 m (17%) → média ponderada
+      area_m2:7.2                       // A = 3,8 m × 1,9 m ≈ 7,2 m²
+    },
+    // Faixas de velocidade média (m/s) por pluviosidade real acumulada (mm — 3 dias)
+    // e vazão correspondente em Q = 7,2 m² × V: 0,72 · 2,16 · 3,60 · 5,76 · 8,64 m³/s
+    vel_por_chuva:[
+      { chuva_mm:0,  v:0.10, rotulo:"Seca / estiagem" },
+      { chuva_mm:1,  v:0.30, rotulo:"Chuva fraca recente" },
+      { chuva_mm:5,  v:0.50, rotulo:"Chuva moderada" },
+      { chuva_mm:20, v:0.80, rotulo:"Chuva forte recente" },
+      { chuva_mm:50, v:1.20, rotulo:"Enxurrada / cheia" }
+    ],
+    runoff_coef:0.08,                   // escoamento da Caatinga (0.05–0.15) — referência
+    precip_evap_factor:0.75             // fração da chuva evapotranspirada antes de escoar
+  },
+
+  // ---------- VEGETAÇÃO · ESTIMATIVA DE ÁRVORES (Caatinga do Cariri) ----------
+  // Densidades médias de literatura para Caatinga regenerante (indivíduos/ha),
+  // ajustadas em runtime pelo fator de cobertura real (NDVI Sentinel-2).
+  trees:{
+    density_per_ha:1800,                // área do PRAD (5,73 km²) — Caatinga arbustivo-arbórea
+    radius_density_per_ha:1200,         // mosaico do entorno (raio delimitado)
+    min_density_per_ha:600
+  },
+
+  // ---------- SENSORIAMENTO REMOTO (exports reais Sentinel-2 do repo kraefegg/AIO) ----------
   rsRepoBase:"https://raw.githubusercontent.com/kraefegg/AIO/main/",
   rsPanels:[
     {code:"NDVI", gif:"Sentinel-2_L2A-1065485713259736-timelapse.gif", title:"Índice de Vegetação por Diferença Normalizada",
-      desc:"Vigor fotossintético da cobertura vegetal, calculado via Sentinel-2 L2A. Único índice com série estatística (CSV) disponível no repositório.",
-      hasStats:true},
+      desc:"Vigor fotossintético da cobertura vegetal, calculado via Sentinel-2 L2A. Série estatística (CSV) real no repositório.", hasStats:true},
     {code:"MOISTURE", gif:"Sentinel-2_L2A-1112016969931582-timelapse.gif", title:"Índice de Umidade (Moisture Index)",
       desc:"Conteúdo de água na vegetação, derivado de bandas NIR/SWIR do Sentinel-2 L2A.", hasStats:false},
     {code:"MSI", gif:"Sentinel-2_L2A-1292750752764826-timelapse.gif", title:"Estresse por Umidade (Moisture Stress Index)",
@@ -61,7 +93,7 @@ const AIO = {
     {code:"NDWI", gif:"Sentinel-2_L2A-291278969510833-timelapse.gif", title:"Índice de Água por Diferença Normalizada",
       desc:"Conteúdo de água em corpos hídricos superficiais e vegetação próximos à área de recuperação.", hasStats:false},
   ],
-  // NDVI CSV exports available in the repo (Sentinel Hub Statistical API format)
+  // NDVI CSV exports disponíveis no repositório (Sentinel Hub Statistical API)
   ndviDatasets:[
     {label:"Histórico completo (2021–2026)", file:"Sentinel-2_L2A-3_NDVI-2021-08-02T00_00_00_000Z-2026-08-02T23_59_59_999Z.csv"},
     {label:"Últimos 2 anos (2024–2026)", file:"Sentinel-2_L2A-3_NDVI-2024-08-02T00_00_00_000Z-2026-08-02T23_59_59_999Z.csv"},
@@ -72,7 +104,7 @@ const AIO = {
   ],
 };
 
-// SVG fallback frame (used only if a repo GIF fails to load — e.g. offline)
+// SVG fallback frame (usado apenas se um GIF do repositório falhar — ex.: offline)
 AIO.rsFrame = function(seed, hue){
   const c = hue||[160,190];
   return `data:image/svg+xml;utf8,` + encodeURIComponent(`
